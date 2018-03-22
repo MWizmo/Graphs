@@ -79,8 +79,6 @@ public:
 		adjacencyMatrix[from-1][to - 1] = weight;
 		if (!isOriented)
 			adjacencyMatrix[to - 1][from - 1] = weight;
-		else
-			adjacencyMatrix[to - 1][from - 1] = -weight;
 		edgesNumber++;
 	}
 
@@ -95,8 +93,6 @@ public:
 		adjacencyMatrix[to - 1][from - 1] = newWeight;
 		if (!isOriented)
 			adjacencyMatrix[from - 1][to - 1] = newWeight;
-		else  
-			adjacencyMatrix[from - 1][to - 1] = -newWeight;
 		return weight;
 	}
 
