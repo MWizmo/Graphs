@@ -76,25 +76,27 @@ public:
 	}
 
 	void addEdge(int from, int to, int weight = 1) override {
-		adjacencyMatrix[to][from] = weight;
+		adjacencyMatrix[from-1][to - 1] = weight;
 		if (!isOriented)
-			adjacencyMatrix[from][to] = weight;
+			adjacencyMatrix[to - 1][from - 1] = weight;
 		else
-			adjacencyMatrix[from][to] = -weight;
+			adjacencyMatrix[to - 1][from - 1] = -weight;
 		edgesNumber++;
 	}
 
 	void removeEdge(int from, int to) override {
-		adjacencyMatrix[to][from] = 0;
-		adjacencyMatrix[from][to] = 0;
+		adjacencyMatrix[to - 1][from - 1] = 0;
+		adjacencyMatrix[from - 1][to - 1] = 0;
 		edgesNumber--;
 	}
 
 	int changeEdge(int from, int to, int newWeight) override {
-		int weight = adjacencyMatrix[from][to];
-		adjacencyMatrix[to][from] = newWeight;
+		int weight = adjacencyMatrix[from - 1][to - 1];
+		adjacencyMatrix[to - 1][from - 1] = newWeight;
 		if (!isOriented)
-			adjacencyMatrix[from][to] = newWeight;
+			adjacencyMatrix[from - 1][to - 1] = newWeight;
+		else  
+			adjacencyMatrix[from - 1][to - 1] = -newWeight;
 		return weight;
 	}
 
@@ -104,13 +106,31 @@ public:
 
 	vector<set<pair<int, int>>> transformToAdjList() override {
 		vector<set<pair<int, int>>> adjList;
-
+		for (int i = 0; i < vertexNumber; i++) {
+			set<pair<int, int>> vertex;
+			for (int j = 0; j < vertexNumber; j++) {
+				if (adjacencyMatrix[i][j] > 0) {
+					vertex.insert(pair<int, int>(j + 1, adjacencyMatrix[i][j]));
+					edgesNumber++;
+				}
+			}
+			adjList.push_back(vertex);
+		}
 		return adjList;
 	}
 
 	vector <tuple<int, int, int>> transformToListOfEdges() override {
 		vector<tuple<int, int, int>> edgesList;
-
+		for (int i = 0; i < vertexNumber; i++) {
+			for (int j = 0; j < vertexNumber; j++) {
+				if (adjacencyMatrix[i][j] > 0) {
+					edgesList.push_back(tuple<int, int, int>(i + 1, j + 1, adjacencyMatrix[i][j]));
+					edgesNumber++;
+					if (!isOriented)
+						adjacencyMatrix[j][i] = 0;
+				}
+			}
+		}
 		return edgesList;
 	}
 
@@ -182,9 +202,13 @@ public:
 	void addEdge(int from, int to, int weight = 1) override {
 		if (isWeighed) {
 			adjList[from - 1].insert(pair<int, int>(to, weight));
+			if (!isOriented)
+				adjList[to - 1].insert(pair<int, int>(from, weight));
 		}
 		else {
 			adjList[from - 1].insert(pair<int, int>(to, 1));
+			if (!isOriented)
+				adjList[to - 1].insert(pair<int, int>(from, 1));
 		}
 		edgesNumber++;
 	}
@@ -195,6 +219,13 @@ public:
 					adjList[from - 1].erase(iter);
 					break;
 				}
+			if (!isOriented) {
+				for (auto iter = adjList[to - 1].begin(); iter != adjList[to - 1].end(); iter++)
+					if ((iter->first) == from) {
+						adjList[to - 1].erase(iter);
+						break;
+					}
+			}
 			edgesNumber--;
 	}
 
@@ -207,6 +238,10 @@ public:
 			}
 		this->removeEdge(from, to);
 		this->addEdge(from, to, newWeight);
+		if (!isOriented) {
+			this->removeEdge(to,from);
+			this->addEdge(to, from, newWeight);
+		}
 		return weight;
 	}
 	
@@ -290,7 +325,7 @@ public:
 		isWeighed = get<0>(info);
 		isOriented = get<1>(info);
 		vertexNumber = get<2>(info);
-		edgesNumber = get<3>(info);
+		edgesNumber = list.size();
 	}
 
 	void readGraph(istream & ist) override {
@@ -358,7 +393,7 @@ public:
 			adjMatrix.push_back(row);
 		}
 
-			for (int i = 0; i < vertexNumber; i++) {
+			for (int i = 0; i < edgesNumber; i++) {
 				adjMatrix[get<0>(edgesList[i]) - 1][get<1>(edgesList[i]) - 1] = get<2>(edgesList[i]);
 				if (!isOriented)
 					adjMatrix[get<1>(edgesList[i]) - 1][get<0>(edgesList[i]) - 1] = get<2>(edgesList[i]);
@@ -377,6 +412,8 @@ public:
 
 		for (int i = 0; i < edgesNumber; i++) {
 			adjList[get<0>(edgesList[i])-1].insert(pair<int, int>(get<1>(edgesList[i]), get<2>(edgesList[i])));
+			if(!isOriented)
+				adjList[get<1>(edgesList[i]) - 1].insert(pair<int, int>(get<0>(edgesList[i]), get<2>(edgesList[i])));
 		}
 		return adjList;
 	}
@@ -388,7 +425,10 @@ public:
 	void writeGraph(string fileName) override {
 		ofstream file(fileName);
 			for (int i = 0; i < edgesNumber; i++) {
-				file << get<0>(edgesList[i]) << "-" << get<1>(edgesList[i]);
+				if(isOriented)
+					file << get<0>(edgesList[i]) << "->" << get<1>(edgesList[i]);
+				else
+					file << get<0>(edgesList[i]) << "-" << get<1>(edgesList[i]);
 				if (isWeighed)
 					file << "(" << get<2>(edgesList[i]) << ")";
 				file << endl;
@@ -452,6 +492,8 @@ int main()
 {
 	Graph graph = Graph();
 	graph.readGraph("input.txt");
+	graph.addEdge(4, 1, 7);
+	graph.writeGraph("output2.txt");
 	graph.transformToAdjList();
 	graph.writeGraph("output.txt");
 	setlocale(LC_ALL, "rus");
