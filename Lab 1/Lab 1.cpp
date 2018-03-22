@@ -296,13 +296,13 @@ public:
 	void writeGraph(string fileName) override {
 		ofstream file(fileName);
 		for (int i = 0; i < vertexNumber; i++) {
-			file << i + 1 << ": ";
 			for (auto iter = adjList[i].begin(); iter != adjList[i].end(); iter++) {
+				file << i + 1 << " ";
 				file << iter->first;
 				if (isWeighed)
-					file << "(" << iter->second << ") ";	
+					file << " " << iter->second;
+				file << endl;
 			}
-			file << endl;
 		}
 		file.close();
 	}
@@ -425,12 +425,9 @@ public:
 	void writeGraph(string fileName) override {
 		ofstream file(fileName);
 			for (int i = 0; i < edgesNumber; i++) {
-				if(isOriented)
-					file << get<0>(edgesList[i]) << "->" << get<1>(edgesList[i]);
-				else
-					file << get<0>(edgesList[i]) << "-" << get<1>(edgesList[i]);
+				file << get<0>(edgesList[i]) << " " << get<1>(edgesList[i]);
 				if (isWeighed)
-					file << "(" << get<2>(edgesList[i]) << ")";
+					file << " " << get<2>(edgesList[i]);
 				file << endl;
 			}
 		file.close();
