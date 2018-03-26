@@ -28,7 +28,6 @@ vector<string> Split(string str, char delimiter) {
 class GraphRepresentationType {
 protected:
 	int vertexNumber = 0;
-	int edgesNumber = 0;
 	bool isWeighed;
 	bool isOriented;
 public:
@@ -40,7 +39,7 @@ public:
 	virtual vector<set<pair<int, int>>> transformToAdjList() = 0;
 	virtual vector <tuple<int, int, int>> transformToListOfEdges() = 0;
 	virtual void writeGraph(string fileName) = 0;
-	virtual tuple<bool, bool, int, int> GetInfo() = 0;
+	virtual tuple<bool, bool, int> GetInfo() = 0;
 };
 
 class AdjMatrixGraph :public GraphRepresentationType {
@@ -52,12 +51,11 @@ public:
 		
 	}
 
-	AdjMatrixGraph(vector<vector<int>> matrix, tuple<bool, bool, int, int> info) {
+	AdjMatrixGraph(vector<vector<int>> matrix, tuple<bool, bool, int> info) {
 		adjacencyMatrix = matrix;
 		isWeighed = get<0>(info);
 		isOriented = get<1>(info);
 		vertexNumber = get<2>(info);
-		edgesNumber = get<3>(info);
 	}
 
 	void readGraph(istream & ist) override {
@@ -79,13 +77,11 @@ public:
 		adjacencyMatrix[from-1][to - 1] = weight;
 		if (!isOriented)
 			adjacencyMatrix[to - 1][from - 1] = weight;
-		edgesNumber++;
 	}
 
 	void removeEdge(int from, int to) override {
 		adjacencyMatrix[to - 1][from - 1] = 0;
 		adjacencyMatrix[from - 1][to - 1] = 0;
-		edgesNumber--;
 	}
 
 	int changeEdge(int from, int to, int newWeight) override {
@@ -107,7 +103,6 @@ public:
 			for (int j = 0; j < vertexNumber; j++) {
 				if (adjacencyMatrix[i][j] > 0) {
 					vertex.insert(pair<int, int>(j + 1, adjacencyMatrix[i][j]));
-					edgesNumber++;
 				}
 			}
 			adjList.push_back(vertex);
@@ -121,7 +116,6 @@ public:
 			for (int j = 0; j < vertexNumber; j++) {
 				if (adjacencyMatrix[i][j] > 0) {
 					edgesList.push_back(tuple<int, int, int>(i + 1, j + 1, adjacencyMatrix[i][j]));
-					edgesNumber++;
 					if (!isOriented)
 						adjacencyMatrix[j][i] = 0;
 				}
@@ -139,8 +133,8 @@ public:
 		}
 	}
 
-	tuple<bool, bool, int, int> GetInfo() override {
-		return tuple<bool, bool, int, int>(isWeighed, isOriented, vertexNumber, edgesNumber);
+	tuple<bool, bool, int> GetInfo() override {
+		return tuple<bool, bool, int>(isWeighed, isOriented, vertexNumber);
 	}
 };
 
@@ -152,12 +146,11 @@ public:
 
 	}
 
-	AdjListGraph(vector<set<pair<int, int>>> list, tuple<bool, bool, int, int> info) {
+	AdjListGraph(vector<set<pair<int, int>>> list, tuple<bool, bool, int> info) {
 		adjList=list;
 		isWeighed = get<0>(info);
 		isOriented = get<1>(info);
 		vertexNumber = get<2>(info);
-		edgesNumber = get<3>(info);
 	}
 
 	void readGraph(istream & ist) override {
@@ -175,7 +168,6 @@ public:
 				for (int j = 0; j < neighbours.size(); j += 2) {
 					pair<int, int> adjancecy(stoi(neighbours[j]), stoi(neighbours[j + 1]));
 					adjanceciesOfVertex.insert(adjancecy);
-					edgesNumber++;
 				}
 				adjList.push_back(adjanceciesOfVertex);
 			}
@@ -188,7 +180,6 @@ public:
 				for (int j = 0; j < neighbours.size(); j++) {
 					pair<int, int> adjancecy(stoi(neighbours[j]),1);
 					adjanceciesOfVertex.insert(adjancecy);
-					edgesNumber++;
 				}
 				adjList.push_back(adjanceciesOfVertex);
 			}
@@ -206,7 +197,6 @@ public:
 			if (!isOriented)
 				adjList[to - 1].insert(pair<int, int>(from, 1));
 		}
-		edgesNumber++;
 	}
 
 	void removeEdge(int from, int to) override {
@@ -222,7 +212,6 @@ public:
 						break;
 					}
 			}
-			edgesNumber--;
 	}
 
 	int changeEdge(int from, int to, int newWeight) override {
@@ -303,20 +292,21 @@ public:
 		file.close();
 	}
 
-	tuple<bool, bool, int, int> GetInfo() override {
-		return tuple<bool, bool, int, int>(isWeighed, isOriented, vertexNumber, edgesNumber);
+	tuple<bool, bool, int> GetInfo() override {
+		return tuple<bool, bool, int>(isWeighed, isOriented, vertexNumber);
 	}
 };
 
 class ListOfEdgesGraph :public GraphRepresentationType {
 private:
+	int edgesNumber;
 	vector <tuple<int, int, int>> edgesList;
 public:
 	ListOfEdgesGraph() {
 
 	}
 
-	ListOfEdgesGraph(vector <tuple<int, int, int>> list, tuple<bool, bool, int, int> info) {
+	ListOfEdgesGraph(vector <tuple<int, int, int>> list, tuple<bool, bool, int> info) {
 		edgesList = list;
 		isWeighed = get<0>(info);
 		isOriented = get<1>(info);
@@ -429,8 +419,8 @@ public:
 		file.close();
 	}
 
-	tuple<bool, bool, int, int> GetInfo() override {
-		return tuple<bool, bool, int, int>(isWeighed, isOriented, vertexNumber, edgesNumber);
+	tuple<bool, bool, int> GetInfo() override {
+		return tuple<bool, bool, int>(isWeighed, isOriented, vertexNumber);
 	}
 };
 
