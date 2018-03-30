@@ -25,6 +25,43 @@ vector<string> Split(string str, char delimiter) {
 	return vec;
 }
 
+class DSU {
+private:
+	vector<int> parent;
+	vector <int> rank;
+	int size = 0;
+public:
+	void make_set(int v) {
+		if (parent.size() < v) {
+			for (int i = size; i < v; i++) {
+				parent.push_back(0);
+				rank.push_back(0);
+			}
+			size = v;
+		}
+		parent[v - 1] = v;
+		rank[v - 1] = 0;
+	}
+
+	int find_set(int v) {
+		if (v == parent[v - 1])
+			return v;
+		return parent[v - 1] = find_set(parent[v - 1]);
+	}
+
+	void union_sets(int a, int b) {
+		a = find_set(a);
+		b = find_set(b);
+		if (a != b) {
+			if (rank[a - 1] < rank[b - 1])
+				swap(a, b);
+			parent[b - 1] = a;
+			if (rank[a - 1] == rank[b - 1])
+				++rank[a - 1];
+		}
+	}
+};
+
 class GraphRepresentationType {
 protected:
 	int vertexNumber = 0;
@@ -48,7 +85,17 @@ private:
 public:
 
 	AdjMatrixGraph() {
-		
+
+	}
+
+	AdjMatrixGraph(int n) {
+		vertexNumber = n;
+		for (int i = 0; i < n; i++) {
+			vector<int> vertex;
+			for (int j = 0; j < n; j++)
+				vertex.push_back(0);
+			adjacencyMatrix.push_back(vertex);
+		}
 	}
 
 	AdjMatrixGraph(vector<vector<int>> matrix, tuple<bool, bool, int> info) {
@@ -74,7 +121,7 @@ public:
 	}
 
 	void addEdge(int from, int to, int weight = 1) override {
-		adjacencyMatrix[from-1][to - 1] = weight;
+		adjacencyMatrix[from - 1][to - 1] = weight;
 		if (!isOriented)
 			adjacencyMatrix[to - 1][from - 1] = weight;
 	}
@@ -136,6 +183,7 @@ public:
 	tuple<bool, bool, int> GetInfo() override {
 		return tuple<bool, bool, int>(isWeighed, isOriented, vertexNumber);
 	}
+
 };
 
 class AdjListGraph :public GraphRepresentationType {
@@ -146,8 +194,16 @@ public:
 
 	}
 
+	AdjListGraph(int n) {
+		vertexNumber = n;
+		for (int i = 0; i < n; i++) {
+			set<pair<int, int>> vertex;
+			adjList.push_back(vertex);
+		}
+	}
+
 	AdjListGraph(vector<set<pair<int, int>>> list, tuple<bool, bool, int> info) {
-		adjList=list;
+		adjList = list;
 		isWeighed = get<0>(info);
 		isOriented = get<1>(info);
 		vertexNumber = get<2>(info);
@@ -176,9 +232,9 @@ public:
 			for (int i = 0; i < vertexNumber; i++) {
 				getline(ist, currentVertexList);
 				vector<string> neighbours = Split(currentVertexList, ' ');
-				set<pair<int,int>> adjanceciesOfVertex;
+				set<pair<int, int>> adjanceciesOfVertex;
 				for (int j = 0; j < neighbours.size(); j++) {
-					pair<int, int> adjancecy(stoi(neighbours[j]),1);
+					pair<int, int> adjancecy(stoi(neighbours[j]), 1);
 					adjanceciesOfVertex.insert(adjancecy);
 				}
 				adjList.push_back(adjanceciesOfVertex);
@@ -200,18 +256,18 @@ public:
 	}
 
 	void removeEdge(int from, int to) override {
-			for (auto iter = adjList[from - 1].begin(); iter != adjList[from - 1].end(); iter++)
-				if ((iter->first) == to) {
-					adjList[from - 1].erase(iter);
+		for (auto iter = adjList[from - 1].begin(); iter != adjList[from - 1].end(); iter++)
+			if ((iter->first) == to) {
+				adjList[from - 1].erase(iter);
+				break;
+			}
+		if (!isOriented) {
+			for (auto iter = adjList[to - 1].begin(); iter != adjList[to - 1].end(); iter++)
+				if ((iter->first) == from) {
+					adjList[to - 1].erase(iter);
 					break;
 				}
-			if (!isOriented) {
-				for (auto iter = adjList[to - 1].begin(); iter != adjList[to - 1].end(); iter++)
-					if ((iter->first) == from) {
-						adjList[to - 1].erase(iter);
-						break;
-					}
-			}
+		}
 	}
 
 	int changeEdge(int from, int to, int newWeight) override {
@@ -224,12 +280,12 @@ public:
 		this->removeEdge(from, to);
 		this->addEdge(from, to, newWeight);
 		if (!isOriented) {
-			this->removeEdge(to,from);
+			this->removeEdge(to, from);
 			this->addEdge(to, from, newWeight);
 		}
 		return weight;
 	}
-	
+
 	vector<vector<int>> transformToAdjMatrix() override {
 		vector<vector<int>> adjMatrix;
 		for (int i = 0; i < vertexNumber; i++) {
@@ -263,7 +319,7 @@ public:
 		}
 		return adjMatrix;
 	}
-	
+
 	vector<set<pair<int, int>>> transformToAdjList() override {
 		return adjList;
 	}
@@ -295,6 +351,83 @@ public:
 	tuple<bool, bool, int> GetInfo() override {
 		return tuple<bool, bool, int>(isWeighed, isOriented, vertexNumber);
 	}
+
+	vector<set<pair<int, int>>> getSpaingTreePrima() {
+		vector<set<pair<int, int>>> spaingTree;
+		for (int i = 0; i < vertexNumber; i++) {
+			set<pair<int, int>> vertex;
+			spaingTree.push_back(vertex);
+		}
+
+		vector<bool> isMarked;
+		for (int i = 0; i < vertexNumber; i++) {
+			isMarked.push_back(false);
+		}
+
+		isMarked[0] = true;
+		int newVertexNumber = 1;
+		while (newVertexNumber != vertexNumber) {
+			int firstVertex;
+			int secondVertex;
+			int minimalEdge = 10000;
+			for (int i = 0; i < vertexNumber; i++) {
+				if (isMarked[i]) {
+					for (auto iter = adjList[i].begin(); iter != adjList[i].end(); iter++) {
+						if ((iter->second < minimalEdge) && (!isMarked[iter->first - 1]) && (iter->second>0)) {
+							minimalEdge = iter->second;
+							firstVertex = i;
+							secondVertex = iter->first;
+						}
+					}
+				}
+			}
+			spaingTree[firstVertex].insert(pair<int, int>(secondVertex, minimalEdge));
+			spaingTree[secondVertex - 1].insert(pair<int, int>(firstVertex + 1, minimalEdge));
+			isMarked[secondVertex - 1] = true;
+			newVertexNumber++;
+		}
+		return spaingTree;
+	}
+
+	vector<set<pair<int, int>>> getSpaingTreeBoruvka() {
+		vector<set<pair<int, int>>> spaingTree;
+		for (int i = 0; i < vertexNumber; i++) {
+			set<pair<int, int>> vertex;
+			spaingTree.push_back(vertex);
+		}
+		DSU dsu;
+		for (int i = 0; i < vertexNumber; i++)
+			dsu.make_set(i + 1);
+
+		int edgesNumber = 0;
+		while (edgesNumber < vertexNumber - 1) {
+			vector<pair<int, int>> minimalEdges;
+			for (int i = 0; i < vertexNumber; i++) {
+				int minimalLength = 1000000;
+				pair<int, int> minimalEdge = pair<int, int>(0, 0);
+				for (auto iter = adjList[i].begin(); iter != adjList[i].end(); iter++) {
+					if ((iter->second < minimalLength) && (dsu.find_set(iter->first) != dsu.find_set(i + 1))) {
+						minimalLength = iter->second;
+						minimalEdge = pair<int, int>(iter->first, iter->second);
+					}
+				}
+				minimalEdges.push_back(minimalEdge);
+			}
+
+			for (int i = 0; i < vertexNumber; i++) {
+				if ((minimalEdges[i] != pair<int, int>(0, 0)) && (dsu.find_set(get<0>(minimalEdges[i])) != dsu.find_set(i + 1))) {
+					spaingTree[i].insert(pair<int, int>(get<0>(minimalEdges[i]), get<1>(minimalEdges[i])));
+					spaingTree[get<0>(minimalEdges[i]) - 1].insert(pair<int, int>(i + 1, get<1>(minimalEdges[i])));
+					edgesNumber++;
+					if (edgesNumber == vertexNumber - 1) break;
+					dsu.union_sets(get<0>(minimalEdges[i]), i + 1);
+				}
+			}
+
+		}
+		return spaingTree;
+	}
+
 };
 
 class ListOfEdgesGraph :public GraphRepresentationType {
@@ -304,6 +437,10 @@ private:
 public:
 	ListOfEdgesGraph() {
 
+	}
+
+	ListOfEdgesGraph(int n) {
+		vertexNumber = n;
 	}
 
 	ListOfEdgesGraph(vector <tuple<int, int, int>> list, tuple<bool, bool, int> info) {
@@ -332,7 +469,7 @@ public:
 			for (int i = 0; i < edgesNumber; i++) {
 				getline(ist, currentEdge);
 				vector<string> vertexes = Split(currentEdge, ' ');
-				edgesList.push_back(tuple<int, int, int>(stoi(vertexes[0]), stoi(vertexes[1]),1));
+				edgesList.push_back(tuple<int, int, int>(stoi(vertexes[0]), stoi(vertexes[1]), 1));
 			}
 		}
 	}
@@ -342,7 +479,7 @@ public:
 			edgesList.push_back(tuple<int, int, int>(from, to, weight));
 		}
 		else {
-			edgesList.push_back(tuple<int,int, int>(from, to,1));
+			edgesList.push_back(tuple<int, int, int>(from, to, 1));
 		}
 		edgesNumber++;
 	}
@@ -369,7 +506,7 @@ public:
 		this->addEdge(from, to, newWeight);
 		return weight;
 	}
-	
+
 	vector<vector<int>> transformToAdjMatrix() override {
 		vector<vector<int>> adjMatrix;
 		for (int i = 0; i < vertexNumber; i++) {
@@ -379,13 +516,13 @@ public:
 			adjMatrix.push_back(row);
 		}
 
-			for (int i = 0; i < edgesNumber; i++) {
-				adjMatrix[get<0>(edgesList[i]) - 1][get<1>(edgesList[i]) - 1] = get<2>(edgesList[i]);
-				if (!isOriented)
-					adjMatrix[get<1>(edgesList[i]) - 1][get<0>(edgesList[i]) - 1] = get<2>(edgesList[i]);
-				else
-					adjMatrix[get<1>(edgesList[i]) - 1][get<0>(edgesList[i]) - 1] = -get<2>(edgesList[i]);
-			}
+		for (int i = 0; i < edgesNumber; i++) {
+			adjMatrix[get<0>(edgesList[i]) - 1][get<1>(edgesList[i]) - 1] = get<2>(edgesList[i]);
+			if (!isOriented)
+				adjMatrix[get<1>(edgesList[i]) - 1][get<0>(edgesList[i]) - 1] = get<2>(edgesList[i]);
+			else
+				adjMatrix[get<1>(edgesList[i]) - 1][get<0>(edgesList[i]) - 1] = -get<2>(edgesList[i]);
+		}
 		return adjMatrix;
 	}
 
@@ -397,8 +534,8 @@ public:
 		}
 
 		for (int i = 0; i < edgesNumber; i++) {
-			adjList[get<0>(edgesList[i])-1].insert(pair<int, int>(get<1>(edgesList[i]), get<2>(edgesList[i])));
-			if(!isOriented)
+			adjList[get<0>(edgesList[i]) - 1].insert(pair<int, int>(get<1>(edgesList[i]), get<2>(edgesList[i])));
+			if (!isOriented)
 				adjList[get<1>(edgesList[i]) - 1].insert(pair<int, int>(get<0>(edgesList[i]), get<2>(edgesList[i])));
 		}
 		return adjList;
@@ -410,24 +547,58 @@ public:
 
 	void writeGraph(string fileName) override {
 		ofstream file(fileName);
-			for (int i = 0; i < edgesNumber; i++) {
-				file << get<0>(edgesList[i]) << " " << get<1>(edgesList[i]);
-				if (isWeighed)
-					file << " " << get<2>(edgesList[i]);
-				file << endl;
-			}
+		for (int i = 0; i < edgesNumber; i++) {
+			file << get<0>(edgesList[i]) << " " << get<1>(edgesList[i]);
+			if (isWeighed)
+				file << " " << get<2>(edgesList[i]);
+			file << endl;
+		}
 		file.close();
 	}
 
 	tuple<bool, bool, int> GetInfo() override {
 		return tuple<bool, bool, int>(isWeighed, isOriented, vertexNumber);
 	}
+
+	vector <tuple<int, int, int>> getSpaingTreeKruscal() {
+		vector <tuple<int, int, int>> spaingTree;
+		for (int i = 0; i < edgesNumber; i++) {
+			for (int j = i; j < edgesNumber; j++) {
+				if (get<2>(edgesList[j]) < get<2>(edgesList[i])) {
+					tuple<int, int, int> temp = edgesList[j];
+					edgesList[j] = edgesList[i];
+					edgesList[i] = temp;
+				}
+			}
+		}
+
+		DSU dsu;
+		for (int i = 0; i < vertexNumber; i++)
+			dsu.make_set(i + 1);
+		for (int queue = 0; queue < edgesNumber; queue++) {
+			tuple<int, int, int> edge = edgesList[queue];
+			if (dsu.find_set(get<0>(edge)) != dsu.find_set(get<1>(edge))) {
+				dsu.union_sets(dsu.find_set(get<0>(edge)), dsu.find_set(get<1>(edge)));
+				spaingTree.push_back(edge);
+			}
+		}
+		return spaingTree;
+	}
+
 };
 
 class Graph {
 private:
 	GraphRepresentationType* representation = nullptr;
 public:
+	Graph() {
+
+	}
+
+	Graph(int n) {
+		representation = new AdjListGraph(n);
+	}
+
 	void readGraph(string fileName) {
 		ifstream file(fileName);
 		char repr;
@@ -455,7 +626,7 @@ public:
 	}
 
 	void transformToAdjMatrix() {
-		representation = new AdjMatrixGraph(representation->transformToAdjMatrix(),representation->GetInfo());
+		representation = new AdjMatrixGraph(representation->transformToAdjMatrix(), representation->GetInfo());
 	}
 
 	void transformToAdjList() {
@@ -469,17 +640,50 @@ public:
 	void writeGraph(string fileName) {
 		representation->writeGraph(fileName);
 	}
+
+	Graph getSpaingTreePrima() {
+		this->transformToAdjList();
+		vector<set<pair<int, int>>> minimalSpanningTree = reinterpret_cast<AdjListGraph*>(representation)->getSpaingTreePrima();
+		Graph* spanningTree = new Graph();
+		spanningTree->representation = new AdjListGraph(minimalSpanningTree, representation->GetInfo());
+		return *spanningTree;
+	}
+
+	Graph getSpaingTreeKruscal() {
+		this->transformToListOfEdges();
+		vector <tuple<int, int, int>> minimalSpanningTree = reinterpret_cast<ListOfEdgesGraph*>(representation)->getSpaingTreeKruscal();
+		Graph* spaingTree = new Graph();
+		spaingTree->representation = new ListOfEdgesGraph(minimalSpanningTree, representation->GetInfo());
+		return *spaingTree;
+	}
+
+	Graph getSpaingTreeBoruvka() {
+		this->transformToAdjList();
+		vector<set<pair<int, int>>> minimalSpaingTree = reinterpret_cast<AdjListGraph*>(representation)->getSpaingTreeBoruvka();
+		Graph* spaingTree = new Graph();
+		spaingTree->representation = new AdjListGraph(minimalSpaingTree, representation->GetInfo());
+		return *spaingTree;
+	}
 };
+
 
 int main()
 {
 	Graph graph = Graph();
-	graph.readGraph("input.txt");
-	graph.addEdge(4, 1, 7);
-	graph.writeGraph("output2.txt");
-	graph.transformToAdjList();
-	graph.writeGraph("output.txt");
+	graph.readGraph("Test.txt");
+	Graph graph2 = graph.getSpaingTreePrima();
+	graph2.transformToAdjMatrix();
+	graph2.writeGraph("OutputPrima.txt");
+
+	Graph graph3 = graph.getSpaingTreeKruscal();
+	graph3.transformToAdjMatrix();
+	graph3.writeGraph("OutputKruskal.txt");
+
+	Graph graph4 = graph.getSpaingTreeBoruvka();
+	graph4.transformToAdjMatrix();
+	graph4.writeGraph("OutputBoruvka.txt");
 	setlocale(LC_ALL, "rus");
 	system("pause");
 	return 0;
 }
+
