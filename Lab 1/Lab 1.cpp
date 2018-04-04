@@ -6,6 +6,7 @@
 #include <tuple>
 #include <string>
 #include <iterator>
+#include <stack>
 using namespace std;
 
 vector<string> Split(string str, char delimiter) {
@@ -428,6 +429,70 @@ public:
 		return spaingTree;
 	}
 
+	bool checkEulerCircle() {
+		for (int i = 0; i < vertexNumber; i++) {
+			if (adjList[i].size() % 2 == 1)
+				return false;
+		}
+		return true;
+	}
+
+	int checkEuler(bool circleExist) {
+		int firstVertex = 1;
+		if (!circleExist) {
+			int numberOfOddVertexes = 0;
+			for (int i = 0; i < vertexNumber; i++) {
+				if (adjList[i].size() % 2 == 1) {
+					firstVertex = i + 1;
+					numberOfOddVertexes++;
+				}
+			}
+			if (numberOfOddVertexes > 2)
+				return 0;
+		}
+		return firstVertex;
+	}
+
+	vector<int> getEuleranTourEffective() {
+		vector<set<pair<int, int>>> list = adjList;
+		vector<int> tour;
+		stack<int> s;
+		int firstVertex = checkEuler(checkEulerCircle());
+		s.push(firstVertex);
+		vector<int> edgesSize;
+		for (int i = 0; i < vertexNumber; i++)
+			edgesSize.push_back(list[i].size());
+		while (!s.empty()) {
+			int w = s.top();
+			int first = -1; int second = -1;
+			if (list[w - 1].size() > 0) {
+				for (auto iter = list[w - 1].begin(); iter != list[w - 1].end(); iter++) {
+					if (list[iter->first - 1].size() > 0) {
+						s.push(iter->first);
+						first = w;
+						second = iter->first;
+						list[w - 1].erase(iter);
+						break;
+					}
+				}
+			}
+
+			if (second != -1) {
+				for (auto iter = list[second - 1].begin(); iter != list[second - 1].end(); iter++) {
+					if (iter->first == first) {
+						list[second - 1].erase(iter);
+						break;
+					}
+				}
+			}
+
+			if (w == s.top()) {
+				tour.push_back(w);
+				s.pop();
+			}
+		}
+		return tour;
+	}
 };
 
 class ListOfEdgesGraph :public GraphRepresentationType {
@@ -664,24 +729,38 @@ public:
 		spaingTree->representation = new AdjListGraph(minimalSpaingTree, representation->GetInfo());
 		return *spaingTree;
 	}
+
+	bool checkEulerCircle() {
+		this->transformToAdjList();
+		return reinterpret_cast<AdjListGraph*>(representation)->checkEulerCircle();
+	}
+
+	int checkEuler(bool circleExist) {
+		this->transformToAdjList();
+		circleExist = reinterpret_cast<AdjListGraph*>(representation)->checkEulerCircle();
+		return reinterpret_cast<AdjListGraph*>(representation)->checkEuler(circleExist);
+	}
+
+	vector<int> getEuleranTourFleri() {
+
+	}
+
+	vector<int> getEuleranTourEffective() {
+		this->transformToAdjList();
+		return reinterpret_cast<AdjListGraph*>(representation)->getEuleranTourEffective();
+	}
+
 };
 
 
 int main()
 {
 	Graph graph = Graph();
-	graph.readGraph("Test.txt");
-	Graph graph2 = graph.getSpaingTreePrima();
-	graph2.transformToAdjMatrix();
-	graph2.writeGraph("OutputPrima.txt");
-
-	Graph graph3 = graph.getSpaingTreeKruscal();
-	graph3.transformToAdjMatrix();
-	graph3.writeGraph("OutputKruskal.txt");
-
-	Graph graph4 = graph.getSpaingTreeBoruvka();
-	graph4.transformToAdjMatrix();
-	graph4.writeGraph("OutputBoruvka.txt");
+	graph.readGraph("TestEuler.txt");
+	vector<int> tour = graph.getEuleranTourEffective();
+	for (int i = 0; i < tour.size(); i++)
+		cout << tour[i] << " ";
+	cout << endl;
 	setlocale(LC_ALL, "rus");
 	system("pause");
 	return 0;
