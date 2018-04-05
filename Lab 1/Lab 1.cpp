@@ -7,6 +7,8 @@
 #include <string>
 #include <iterator>
 #include <stack>
+#include <queue>
+#include <algorithm>
 using namespace std;
 
 vector<string> Split(string str, char delimiter) {
@@ -459,9 +461,7 @@ public:
 		stack<int> s;
 		int firstVertex = checkEuler(checkEulerCircle());
 		s.push(firstVertex);
-		vector<int> edgesSize;
-		for (int i = 0; i < vertexNumber; i++)
-			edgesSize.push_back(list[i].size());
+
 		while (!s.empty()) {
 			int w = s.top();
 			int first = -1; int second = -1;
@@ -492,6 +492,84 @@ public:
 			}
 		}
 		return tour;
+	}
+
+	/*void dfs(vector<set<pair<int, int>>> list,vector<bool> used,vector<int> tin, vector<int> fup, int timer, int v, int p = -1) 
+	{
+		used[v] = true;
+		tin[v] = fup[v] = timer++;
+		for (auto iter = list[v].begin(); iter != list[v].end(); iter++)
+		{
+				int to = iter->first;
+				if (to == p)  continue;
+				if (used[to]) 
+					fup[v] = min(fup[v], tin[to]);
+				else
+				{
+					dfs(list,used,tin,fup,timer,to, v);
+					fup[v] = min(fup[v], fup[to]);
+					if (fup[to] > tin[v]) {
+						cout << "bridge: (" << v << " , " << to << ")\n";
+						this->removeEdge(v + 1, to + 1);
+						this->addEdge(v + 1, to + 1, -1);
+					}
+				}
+		}
+	}
+
+	vector<set<pair<int, int>>> find_bridges(vector<set<pair<int, int>>> list)
+	{
+		int timer = 0;
+		vector<bool> used;
+		vector<int> tin, fup;
+		for (int i = 0; i < list.size(); ++i) {
+			used.push_back(false);
+			tin.push_back(0);
+			fup.push_back(0);
+		}
+		for (int i = 0; i < list.size(); ++i)
+			if (!used[i]) dfs(list,used,tin,fup,timer,i);
+		return list;
+	}
+	*/
+	vector<int> getEuleranTourFleri() {
+		vector<set<pair<int, int>>> list = adjList;
+		vector<int> tour;
+		int firstVertex = checkEuler(checkEulerCircle());
+
+
+		return tour;
+	}
+
+	int checkBipart() {
+		vector<int> marks;
+		for (int i = 0; i < adjList.size(); i++)
+			marks.push_back(0);
+		queue<int> q;
+		q.push(0);
+		marks[0] = 1;
+		int length = 0;
+		int current_mark = 1;
+		while (!q.empty()) {
+			int node = q.front();
+			q.pop();
+			current_mark *= -1;
+			for (auto iter = adjList[node].begin(); iter != adjList[node].end(); iter++) {
+				if (marks[iter->first - 1] == 0) {
+					marks[iter->first-1] = current_mark;
+					q.push(iter->first - 1);
+					length++;
+				}
+				else {
+					if (marks[iter->first - 1] == current_mark) {
+						continue;
+					}
+					else
+						return 0;
+				}
+			}
+		}
+		return length;
 	}
 };
 
@@ -742,12 +820,18 @@ public:
 	}
 
 	vector<int> getEuleranTourFleri() {
-
+		this->transformToAdjList();
+		return reinterpret_cast<AdjListGraph*>(representation)->getEuleranTourFleri();
 	}
 
 	vector<int> getEuleranTourEffective() {
 		this->transformToAdjList();
 		return reinterpret_cast<AdjListGraph*>(representation)->getEuleranTourEffective();
+	}
+
+	int checkBipart() {
+		this->transformToAdjList();
+		return reinterpret_cast<AdjListGraph*>(representation)->checkBipart();
 	}
 
 };
@@ -756,11 +840,8 @@ public:
 int main()
 {
 	Graph graph = Graph();
-	graph.readGraph("TestEuler.txt");
-	vector<int> tour = graph.getEuleranTourEffective();
-	for (int i = 0; i < tour.size(); i++)
-		cout << tour[i] << " ";
-	cout << endl;
+	graph.readGraph("TestBipart.txt");
+	cout << graph.checkBipart() << endl;
 	setlocale(LC_ALL, "rus");
 	system("pause");
 	return 0;
