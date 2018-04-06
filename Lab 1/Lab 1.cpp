@@ -460,6 +460,7 @@ public:
 		vector<int> tour;
 		stack<int> s;
 		int firstVertex = checkEuler(checkEulerCircle());
+		if (firstVertex == 0) return tour;
 		s.push(firstVertex);
 
 		while (!s.empty()) {
@@ -494,50 +495,68 @@ public:
 		return tour;
 	}
 
-	/*void dfs(vector<set<pair<int, int>>> list,vector<bool> used,vector<int> tin, vector<int> fup, int timer, int v, int p = -1) 
-	{
-		used[v] = true;
-		tin[v] = fup[v] = timer++;
-		for (auto iter = list[v].begin(); iter != list[v].end(); iter++)
-		{
-				int to = iter->first;
-				if (to == p)  continue;
-				if (used[to]) 
-					fup[v] = min(fup[v], tin[to]);
-				else
-				{
-					dfs(list,used,tin,fup,timer,to, v);
-					fup[v] = min(fup[v], fup[to]);
-					if (fup[to] > tin[v]) {
-						cout << "bridge: (" << v << " , " << to << ")\n";
-						this->removeEdge(v + 1, to + 1);
-						this->addEdge(v + 1, to + 1, -1);
-					}
+	int getEdgesNumber() {
+		int num = 0;
+		for (int i = 0; i < adjList.size(); i++) {
+			num += adjList[i].size();
+		}
+		return num;
+	}
+
+	bool isBridge(int from, int to, int weigth) {
+		removeEdge(from + 1, to + 1);
+		vector<bool> marks;
+		for (int i = 0; i < vertexNumber; i++)
+			marks.push_back(false);
+		queue<int> q;
+		marks[from] = true;
+		q.push(from);
+		while (!q.empty()) {
+			int u = q.front();
+			q.pop();
+			for (auto iter = adjList[u].begin(); iter != adjList[u].end(); iter++) {
+				if (iter->first - 1 == to) {
+					return false;
+					addEdge(from + 1, to + 1, weigth);
 				}
+				if (!marks[iter->first - 1]) {
+					marks[iter->first - 1] = true;
+					q.push(iter->first - 1);
+				}
+			}
 		}
+		addEdge(from + 1, to + 1, weigth);
+		return true;
 	}
-
-	vector<set<pair<int, int>>> find_bridges(vector<set<pair<int, int>>> list)
-	{
-		int timer = 0;
-		vector<bool> used;
-		vector<int> tin, fup;
-		for (int i = 0; i < list.size(); ++i) {
-			used.push_back(false);
-			tin.push_back(0);
-			fup.push_back(0);
-		}
-		for (int i = 0; i < list.size(); ++i)
-			if (!used[i]) dfs(list,used,tin,fup,timer,i);
-		return list;
-	}
-	*/
+	
 	vector<int> getEuleranTourFleri() {
-		vector<set<pair<int, int>>> list = adjList;
 		vector<int> tour;
-		int firstVertex = checkEuler(checkEulerCircle());
-
-
+		int v = checkEuler(checkEulerCircle());
+		if (v == 0) return tour;
+		tour.push_back(v);
+		int edgesNumber = getEdgesNumber()/2;
+		
+		while (edgesNumber > 0) {
+			int count = 0;                                                                //Даже
+			set<pair<int, int>>::iterator iter = adjList[v - 1].begin();                  //не
+			while(iter!=adjList[v-1].end()){                                              //спрашивайте
+				int u = iter->first - 1;
+				int weigth = iter->second;
+				count++;                                                                  //Так
+				if ((!isBridge(v - 1, u, weigth)) || (adjList[v - 1].size() == 1)) {
+					edgesNumber--;
+					tour.push_back(u + 1);
+					removeEdge(v, u + 1);
+					v = u + 1;
+					break;
+				}
+				else {
+					iter = adjList[v - 1].begin();                                       //надо
+					for (int i = 0; i < count; i++)
+						iter++;
+				}
+			}
+		}
 		return tour;
 	}
 
@@ -570,6 +589,26 @@ public:
 			}
 		}
 		return length;
+	}
+
+	/*bool TryKun(int v,vector<bool> used) {
+		if (used[v])  return false;
+		used[v] = true;
+		for (auto iter = adjList[v].begin(); iter != adjList[v].end(); iter++) {
+			int to = iter->first;
+			if (mt[to] == -1 || TryKun(mt[to])) {
+				mt[to] = v;
+				return true;
+			}
+		}
+		return false;
+	}*/
+
+	vector<pair<int, int> > getMaximumMatchingBipart() {
+		vector<pair<int, int>> tour;
+		vector<bool> used;
+		for (int i = 0; i < adjList.size(); i++)
+			used.push_back(false);
 	}
 };
 
@@ -820,8 +859,9 @@ public:
 	}
 
 	vector<int> getEuleranTourFleri() {
-		this->transformToAdjList();
-		return reinterpret_cast<AdjListGraph*>(representation)->getEuleranTourFleri();
+		Graph *graph = new Graph();
+		graph->representation = new AdjListGraph(representation->transformToAdjList(), representation->GetInfo());
+		return reinterpret_cast<AdjListGraph*>(graph->representation)->getEuleranTourFleri();
 	}
 
 	vector<int> getEuleranTourEffective() {
@@ -834,14 +874,22 @@ public:
 		return reinterpret_cast<AdjListGraph*>(representation)->checkBipart();
 	}
 
-};
+	vector<pair<int, int> > getMaximumMatchingBipart() {
+		this->transformToAdjList();
+		return reinterpret_cast<AdjListGraph*>(representation)->getMaximumMatchingBipart();
+	}
 
+};
 
 int main()
 {
 	Graph graph = Graph();
-	graph.readGraph("TestBipart.txt");
-	cout << graph.checkBipart() << endl;
+	graph.readGraph("TestEuler.txt");
+	//graph.readGraph("TestBridges.txt");
+	vector<int> tour1=graph.getEuleranTourFleri();
+	vector<int> tour2=graph.getEuleranTourEffective();
+	//graph.readGraph("TestBipart.txt");
+	//cout << graph.checkBipart() << endl;
 	setlocale(LC_ALL, "rus");
 	system("pause");
 	return 0;
