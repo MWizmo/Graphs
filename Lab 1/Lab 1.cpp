@@ -567,7 +567,7 @@ public:
 		queue<int> q;
 		q.push(0);
 		marks[0] = 1;
-		int length = 0;
+		int length = 1;
 		int current_mark = 1;
 		while (!q.empty()) {
 			int node = q.front();
@@ -578,6 +578,8 @@ public:
 					marks[iter->first-1] = current_mark;
 					q.push(iter->first - 1);
 					length++;
+					if (length == vertexNumber)
+						return length;
 				}
 				else {
 					if (marks[iter->first - 1] == current_mark) {
@@ -591,24 +593,38 @@ public:
 		return length;
 	}
 
-	/*bool TryKun(int v,vector<bool> used) {
+	bool TryKun(int v,vector<bool> &used, vector<int> &vec) {
 		if (used[v])  return false;
 		used[v] = true;
 		for (auto iter = adjList[v].begin(); iter != adjList[v].end(); iter++) {
-			int to = iter->first;
-			if (mt[to] == -1 || TryKun(mt[to])) {
-				mt[to] = v;
+			int to = iter->first-1;
+			if (vec[to] == -1 || TryKun(vec[to],used,vec)) {
+				vec[to] = v;
 				return true;
 			}
 		}
 		return false;
-	}*/
+	}
 
 	vector<pair<int, int> > getMaximumMatchingBipart() {
-		vector<pair<int, int>> tour;
+		vector<pair<int, int>> bipart;
+		vector<int> vec;
 		vector<bool> used;
-		for (int i = 0; i < adjList.size(); i++)
+		for (int i = 0; i < vertexNumber; i++) {
 			used.push_back(false);
+			vec.push_back(-1);
+		}
+		for (int i = 0; i < vertexNumber; i++) 
+			TryKun(i, used, vec);
+		
+		for (int i = 0; i < vertexNumber; i++) {
+			if (used[i]) {
+				bipart.push_back(pair<int, int>(i + 1, vec[i]+1));
+				used[i] = false;
+				used[vec[i]] = false;
+			}	
+		}
+		return bipart;
 	}
 };
 
@@ -787,9 +803,9 @@ public:
 		file >> repr;
 		switch (repr)
 		{
-		case 'C':	representation = new AdjMatrixGraph(); break;
-		case 'L':	representation = new AdjListGraph(); break;
-		case 'E':	representation = new ListOfEdgesGraph(); break;
+			case 'C':	representation = new AdjMatrixGraph(); break;
+			case 'L':	representation = new AdjListGraph(); break;
+			case 'E':	representation = new ListOfEdgesGraph(); break;
 		}
 		representation->readGraph(file);
 		file.close();
@@ -884,11 +900,12 @@ public:
 int main()
 {
 	Graph graph = Graph();
-	graph.readGraph("TestEuler.txt");
 	//graph.readGraph("TestBridges.txt");
-	vector<int> tour1=graph.getEuleranTourFleri();
-	vector<int> tour2=graph.getEuleranTourEffective();
-	//graph.readGraph("TestBipart.txt");
+	//vector<int> tour1=graph.getEuleranTourFleri();
+	//vector<int> tour2=graph.getEuleranTourEffective();
+	graph.readGraph("TestBipart.txt");
+	int a = graph.checkBipart();
+	graph.getMaximumMatchingBipart();
 	//cout << graph.checkBipart() << endl;
 	setlocale(LC_ALL, "rus");
 	system("pause");
