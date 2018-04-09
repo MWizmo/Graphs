@@ -885,7 +885,7 @@ public:
 		return reinterpret_cast<AdjListGraph*>(representation)->getEuleranTourEffective();
 	}
 
-	int checkBipart() {
+	int checkBipart(vector<char> &marks) {
 		this->transformToAdjList();
 		return reinterpret_cast<AdjListGraph*>(representation)->checkBipart();
 	}
@@ -904,7 +904,7 @@ int main()
 	//vector<int> tour1=graph.getEuleranTourFleri();
 	//vector<int> tour2=graph.getEuleranTourEffective();
 	graph.readGraph("TestBipart.txt");
-	int a = graph.checkBipart();
+	//int a = graph.checkBipart();
 	graph.getMaximumMatchingBipart();
 	//cout << graph.checkBipart() << endl;
 	setlocale(LC_ALL, "rus");
