@@ -595,8 +595,6 @@ public:
 					marks[iter->first-1] = current_mark;
 					q.push(iter->first - 1);
 					length++;
-					if (length == vertexNumber)
-						return length;
 				}
 				else {
 					if (marks[iter->first - 1] == current_mark) {
@@ -605,8 +603,12 @@ public:
 					else
 						return 0;
 				}
+				if (length == vertexNumber)
+					return length;
 			}
 		}
+		if (length != vertexNumber)
+			return 0;
 		return length;
 	}
 
@@ -973,12 +975,9 @@ int main()
 	/*graph.readGraph("TestFlow.txt");
 	graph.flowFordFulkerson(1, 6);*/
 	Graph g;
-	g.readGraph("Test2.txt");
-	//Graph gg=g.getSpaingTreeBoruvka();
-	//Graph gg = g.getSpaingTreeKruscal();
-	Graph gg=g.getSpaingTreePrima();
-	gg.transformToListOfEdges();
-	gg.writeGraph("output.txt");
+	g.readGraph("TestBipart.txt");
+	vector<char> a;
+	cout<<g.checkBipart(a);
 	setlocale(LC_ALL, "rus");
 	system("pause");
 	return 0;
