@@ -1,4 +1,4 @@
-//#include "stdafx.h"
+#include "stdafx.h"
 #include <iostream>
 #include <vector>
 #include <fstream>
@@ -8,6 +8,7 @@
 #include <iterator>
 #include <stack>
 #include <queue>
+#include <map>
 #include <algorithm>
 using namespace std;
 
@@ -27,6 +28,11 @@ vector<string> Split(string str, char delimiter) {
 		vec.push_back(currentString);
 	return vec;
 }
+
+struct Edge {
+	int capacity;
+	int flow;
+};
 
 class DSU {
 private:
@@ -329,12 +335,20 @@ public:
 
 	vector <tuple<int, int, int>> transformToListOfEdges() override {
 		vector<tuple<int, int, int>> edgesList;
+		vector<pair<int, int>> vec;
 		for (int i = 0; i < vertexNumber; i++) {
 			for (auto iter = adjList[i].begin(); iter != adjList[i].end(); iter++) {
-				edgesList.push_back(tuple<int, int, int>(i + 1, iter->first, iter->second));
+				bool flag = true;
+				for (int j = 0; j < vec.size(); j++)
+					if ((vec[j].first == iter->first) && (vec[j].second == i + 1))
+						flag = false;
+				if (flag) {
+					edgesList.push_back(tuple<int, int, int>(i + 1, iter->first, iter->second));
+					vec.push_back(pair<int, int>(i + 1, iter->first));
+				}
 			}
 		}
-		return edgesList;
+			return edgesList;
 	}
 
 	void writeGraph(string fileName) override {
@@ -369,10 +383,11 @@ public:
 
 		isMarked[0] = true;
 		int newVertexNumber = 1;
+		int firstVertex;
+		int secondVertex;
 		while (newVertexNumber != vertexNumber) {
-			int firstVertex;
-			int secondVertex;
-			int minimalEdge = 10000;
+			
+			int minimalEdge = INT_MAX;
 			for (int i = 0; i < vertexNumber; i++) {
 				if (isMarked[i]) {
 					for (auto iter = adjList[i].begin(); iter != adjList[i].end(); iter++) {
@@ -625,6 +640,49 @@ public:
 			}	
 		}
 		return bipart;
+	}
+
+	vector<map<int,Edge>> transformToTransportNet() {
+		vector<map<int, Edge>> list;
+		for (int i = 0; i < vertexNumber; i++) {
+			map<int, Edge> currentVertex;
+			for (auto iter = adjList[i].begin(); iter != adjList[i].end(); iter++) {
+				Edge currentEdge{ iter->second,0 };
+				currentVertex.insert(make_pair(iter->first, currentEdge));
+			}
+			list.push_back(currentVertex);
+		}
+		return list;
+	}
+
+	int findFlow(vector<map<int, Edge>> &net, int vertex, int sink, int flow,vector<bool> &isVisited) {
+		if (vertex == sink)
+			return flow;
+		isVisited[vertex] = true;
+		for (auto iter = net[vertex].begin(); iter != net[vertex].end(); iter++) {
+			Edge edge = iter->second;
+			int u = iter->first - 1;
+			if ((!isVisited[u]) && (edge.flow < edge.capacity)) {
+				int delta = findFlow(net, u, sink, min(flow, edge.capacity - edge.flow), isVisited);
+				if (delta > 0) {
+					edge.flow += delta;
+					net[vertex].insert(make_pair(u, edge));
+					return delta;
+				}
+			}
+		}
+		return 0;
+	}
+
+	vector<set<pair<int, int>>> flowFordFulkerson(int sourse, int sink) {
+		vector<set<pair<int, int>>> tree;
+		vector<map<int, Edge>> list = transformToTransportNet();
+		vector<bool> isVisited;
+		for (int i = 0; i < vertexNumber; i++)
+			isVisited.push_back(false);
+		int a = findFlow(list, sourse-1, sink-1, 0, isVisited);
+
+		return tree;
 	}
 };
 
@@ -895,18 +953,28 @@ public:
 		return reinterpret_cast<AdjListGraph*>(representation)->getMaximumMatchingBipart();
 	}
 
+	Graph flowFordFulkerson(int sourse, int sink) {
+		this->transformToAdjList();
+		vector<set<pair<int, int>>> tree = reinterpret_cast<AdjListGraph*>(representation)->flowFordFulkerson(sourse,sink);
+		Graph* maxFlow = new Graph();
+		maxFlow->representation = new AdjListGraph(tree, representation->GetInfo());
+		return *maxFlow;
+	}
+
 };
 
 int main()
 {
 	Graph graph = Graph();
-	//graph.readGraph("TestBridges.txt");
-	//vector<int> tour1=graph.getEuleranTourFleri();
-	//vector<int> tour2=graph.getEuleranTourEffective();
-	graph.readGraph("TestBipart.txt");
-	//int a = graph.checkBipart();
-	graph.getMaximumMatchingBipart();
-	//cout << graph.checkBipart() << endl;
+	/*graph.readGraph("TestFlow.txt");
+	graph.flowFordFulkerson(1, 6);*/
+	Graph g;
+	g.readGraph("Test2.txt");
+	//Graph gg=g.getSpaingTreeBoruvka();
+	//Graph gg = g.getSpaingTreeKruscal();
+	Graph gg=g.getSpaingTreePrima();
+	gg.transformToListOfEdges();
+	gg.writeGraph("output.txt");
 	setlocale(LC_ALL, "rus");
 	system("pause");
 	return 0;
