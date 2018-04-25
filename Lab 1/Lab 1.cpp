@@ -1,4 +1,4 @@
-#include "stdafx.h"
+//#include "stdafx.h"
 #include <iostream>
 #include <vector>
 #include <fstream>
@@ -389,7 +389,7 @@ public:
 		int secondVertex;
 		while (newVertexNumber != vertexNumber) {
 			
-			int minimalEdge = INT_MAX;
+			int minimalEdge = INT32_MAX;
 			for (int i = 0; i < vertexNumber; i++) {
 				if (isMarked[i]) {
 					for (auto iter = adjList[i].begin(); iter != adjList[i].end(); iter++) {
@@ -423,7 +423,7 @@ public:
 		while (edgesNumber < vertexNumber - 1) {
 			vector<pair<int, int>> minimalEdges;
 			for (int i = 0; i < vertexNumber; i++) {
-				int minimalLength = 1000000;
+				int minimalLength = INT32_MAX;
 				pair<int, int> minimalEdge = pair<int, int>(0, 0);
 				for (auto iter = adjList[i].begin(); iter != adjList[i].end(); iter++) {
 					if ((iter->second < minimalLength) && (dsu.find_set(iter->first) != dsu.find_set(i + 1))) {
@@ -974,12 +974,20 @@ int main()
 	//Graph graph = Graph();
 	/*graph.readGraph("TestFlow.txt");
 	graph.flowFordFulkerson(1, 6);*/
-	Graph g;
+	/*Graph g;
 	g.readGraph("TestBipart.txt");
 	vector<char> a;
 	cout<<g.checkBipart(a);
 	setlocale(LC_ALL, "rus");
 	system("pause");
+	return 0;*/
+	Graph g;
+	g.readGraph("input.txt");
+	//Graph gg=g.getSpaingTreeBoruvka();
+	Graph gg = g.getSpaingTreeKruscal();
+	// Graph gg=g.getSpaingTreePrima();
+	gg.transformToAdjList();
+	gg.writeGraph("output.txt");
 	return 0;
 }
 
