@@ -971,7 +971,7 @@ public:
 
 int main()
 {
-	Graph graph = Graph();
+	//Graph graph = Graph();
 	/*graph.readGraph("TestFlow.txt");
 	graph.flowFordFulkerson(1, 6);*/
 	Graph g;
