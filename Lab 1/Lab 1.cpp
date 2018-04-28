@@ -1,4 +1,4 @@
-//#include "stdafx.h"
+#include "stdafx.h"
 #include <iostream>
 #include <vector>
 #include <fstream>
@@ -70,6 +70,29 @@ public:
 		}
 	}
 };
+
+void QSort(vector<tuple<int,int,int>> &mas, int first, int last)
+{
+	int mid;
+	tuple<int, int, int> count;
+	int f = first, l = last;
+	mid = get<2>(mas[(f + l) / 2]);
+	do
+	{
+		while (get<2>(mas[f])<mid) f++;
+		while (get<2>(mas[l])>mid) l--;
+		if (f <= l) 
+		{
+			count = mas[f];
+			mas[f] = mas[l];
+			mas[l] = count;
+			f++;
+			l--;
+		}
+	} while (f<l);
+	if (first<l) QSort(mas, first, l);
+	if (f<last) QSort(mas, f, last);
+}
 
 class GraphRepresentationType {
 protected:
@@ -354,14 +377,15 @@ public:
 	void writeGraph(string fileName) override {
 		ofstream file(fileName);
 		file << "L " << vertexNumber << endl;
-		file << isOriented << " " << isWeighed << endl;
+		file << isOriented << " " << isWeighed;
 		for (int i = 0; i < vertexNumber; i++) {
+			file << endl;
 			for (auto iter = adjList[i].begin(); iter != adjList[i].end(); iter++) {
-				file << i + 1 << " ";
+				//file << i + 1 << " ";
+				if (iter != adjList[i].begin()) file << " ";
 				file << iter->first;
 				if (isWeighed)
 					file << " " << iter->second;
-				file << endl;
 			}
 		}
 		file.close();
@@ -387,8 +411,8 @@ public:
 		int newVertexNumber = 1;
 		int firstVertex;
 		int secondVertex;
-		while (newVertexNumber != vertexNumber) {
-			
+
+		while (newVertexNumber != vertexNumber) {	
 			int minimalEdge = INT32_MAX;
 			for (int i = 0; i < vertexNumber; i++) {
 				if (isMarked[i]) {
@@ -554,12 +578,12 @@ public:
 		int edgesNumber = getEdgesNumber()/2;
 		
 		while (edgesNumber > 0) {
-			int count = 0;                                                                //Даже
-			set<pair<int, int>>::iterator iter = adjList[v - 1].begin();                  //не
-			while(iter!=adjList[v-1].end()){                                              //спрашивайте
+			int count = 0;                                                                
+			set<pair<int, int>>::iterator iter = adjList[v - 1].begin();                  
+			while(iter!=adjList[v-1].end()){                                              
 				int u = iter->first - 1;
 				int weigth = iter->second;
-				count++;                                                                  //Так
+				count++;                                                                 
 				if ((!isBridge(v - 1, u, weigth)) || (adjList[v - 1].size() == 1)) {
 					edgesNumber--;
 					tour.push_back(u + 1);
@@ -568,7 +592,7 @@ public:
 					break;
 				}
 				else {
-					iter = adjList[v - 1].begin();                                       //надо
+					iter = adjList[v - 1].begin();                                       
 					for (int i = 0; i < count; i++)
 						iter++;
 				}
@@ -824,7 +848,7 @@ public:
 
 	vector <tuple<int, int, int>> getSpaingTreeKruscal() {
 		vector <tuple<int, int, int>> spaingTree;
-		for (int i = 0; i < edgesNumber; i++) {
+		/* (int i = 0; i < edgesNumber; i++) {
 			for (int j = i; j < edgesNumber; j++) {
 				if (get<2>(edgesList[j]) < get<2>(edgesList[i])) {
 					tuple<int, int, int> temp = edgesList[j];
@@ -832,7 +856,8 @@ public:
 					edgesList[i] = temp;
 				}
 			}
-		}
+		}*/
+		QSort(edgesList, 0, edgesList.size() - 1);
 
 		DSU dsu;
 		for (int i = 0; i < vertexNumber; i++)
