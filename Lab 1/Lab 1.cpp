@@ -1,4 +1,4 @@
-#include "stdafx.h"
+//#include "stdafx.h"
 #include <iostream>
 #include <vector>
 #include <fstream>
@@ -1011,7 +1011,7 @@ int main()
 	//Graph gg=g.getSpaingTreeBoruvka();
 	Graph gg = g.getSpaingTreeKruscal();
 	// Graph gg=g.getSpaingTreePrima();
-	gg.transformToAdjList();
+	gg.transformToListOfEdges();
 	gg.writeGraph("output.txt");
 	return 0;
 }
