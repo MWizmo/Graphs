@@ -1,4 +1,4 @@
-//#include "stdafx.h"
+#include "stdafx.h"
 #include <iostream>
 #include <vector>
 #include <fstream>
@@ -10,6 +10,7 @@
 #include <queue>
 #include <map>
 #include <algorithm>
+#include <functional>
 using namespace std;
 
 vector<string> Split(string str, char delimiter) {
@@ -395,82 +396,76 @@ public:
 		return tuple<bool, bool, int>(isWeighed, isOriented, vertexNumber);
 	}
 
-	vector<set<pair<int, int>>> getSpaingTreePrima() {
-		vector<set<pair<int, int>>> spaingTree;
-		for (int i = 0; i < vertexNumber; i++) {
-			set<pair<int, int>> vertex;
-			spaingTree.push_back(vertex);
-		}
+	vector<tuple<int, int, int>> getSpaingTreePrima() {
+		vector<tuple<int,int,int>> spaingTree;
+		priority_queue<pair<int, int>, vector<pair<int, int>>, greater<pair<int, int>>> pq;
+		vector<int> distances(vertexNumber, INT32_MAX);
+		vector<int> parent(vertexNumber, -1);
+		vector<bool> isMarked(vertexNumber, false);
+		
+		pq.push(make_pair(0,1));
+		distances[0] = 0;
 
-		vector<bool> isMarked;
-		for (int i = 0; i < vertexNumber; i++) {
-			isMarked.push_back(false);
-		}
-
-		isMarked[0] = true;
-		int newVertexNumber = 1;
-		int firstVertex;
-		int secondVertex;
-
-		while (newVertexNumber != vertexNumber) {	
-			int minimalEdge = INT32_MAX;
-			for (int i = 0; i < vertexNumber; i++) {
-				if (isMarked[i]) {
-					for (auto iter = adjList[i].begin(); iter != adjList[i].end(); iter++) {
-						if ((iter->second < minimalEdge) && (!isMarked[iter->first - 1]) && (iter->second>0)) {
-							minimalEdge = iter->second;
-							firstVertex = i;
-							secondVertex = iter->first;
-						}
-					}
+		while (!pq.empty()) {
+			int u = pq.top().second - 1;
+			pq.pop();
+			isMarked[u] = true;
+			for (auto it = adjList[u].begin(); it != adjList[u].end(); ++it) {
+				int v = it->first - 1;
+				int weight = it->second;
+				if (isMarked[v] == false && distances[v] > weight) {
+					distances[v] = weight;
+					pq.push(make_pair(distances[v], v+1));
+					parent[v] = u;
 				}
 			}
-			spaingTree[firstVertex].insert(pair<int, int>(secondVertex, minimalEdge));
-			spaingTree[secondVertex - 1].insert(pair<int, int>(firstVertex + 1, minimalEdge));
-			isMarked[secondVertex - 1] = true;
-			newVertexNumber++;
 		}
+
+		for (int i = 1; i < parent.size(); ++i)
+			spaingTree.push_back(tuple<int,int,int>(parent[i]+1, i+1, distances[i]));
 		return spaingTree;
 	}
 
-	vector<set<pair<int, int>>> getSpaingTreeBoruvka() {
-		vector<set<pair<int, int>>> spaingTree;
-		for (int i = 0; i < vertexNumber; i++) {
-			set<pair<int, int>> vertex;
-			spaingTree.push_back(vertex);
-		}
-		DSU dsu;
-		for (int i = 0; i < vertexNumber; i++)
-			dsu.make_set(i + 1);
+	/*vector<tuple<int, int, int>> getSpaingTreeBoruvka() {
+		vector<tuple<int, int, int>> spaingTree;
+		EdgeList edgeList = edgeListGraph->edgeList;
+		int vertexAmount = edgeListGraph->vertexAmount;
+		auto edgeVector = vector<pair<pair<int, int>, int>>(edgeListGraph->edgeList->begin(), edgeListGraph->edgeList->end());
 
-		int edgesNumber = 0;
-		while (edgesNumber < vertexNumber - 1) {
-			vector<pair<int, int>> minimalEdges;
-			for (int i = 0; i < vertexNumber; i++) {
-				int minimalLength = INT32_MAX;
-				pair<int, int> minimalEdge = pair<int, int>(0, 0);
-				for (auto iter = adjList[i].begin(); iter != adjList[i].end(); iter++) {
-					if ((iter->second < minimalLength) && (dsu.find_set(iter->first) != dsu.find_set(i + 1))) {
-						minimalLength = iter->second;
-						minimalEdge = pair<int, int>(iter->first, iter->second);
-					}
-				}
-				minimalEdges.push_back(minimalEdge);
-			}
+		DSU dsu = DSU(vertexAmount);
+		for (size_t i = 0; i < edgeListGraph->vertexAmount; ++i)
+			dsu.makeSet(i);
 
-			for (int i = 0; i < vertexNumber; i++) {
-				if ((minimalEdges[i] != pair<int, int>(0, 0)) && (dsu.find_set(get<0>(minimalEdges[i])) != dsu.find_set(i + 1))) {
-					spaingTree[i].insert(pair<int, int>(get<0>(minimalEdges[i]), get<1>(minimalEdges[i])));
-					spaingTree[get<0>(minimalEdges[i]) - 1].insert(pair<int, int>(i + 1, get<1>(minimalEdges[i])));
-					edgesNumber++;
-					if (edgesNumber == vertexNumber - 1) break;
-					dsu.union_sets(get<0>(minimalEdges[i]), i + 1);
+		EdgeListGraphRepresentation* newEdgeListGraph = new EdgeListGraphRepresentation(false, true, vertexAmount, 0);
+		while (newEdgeListGraph->edgesAmount < vertexAmount - 1) {
+			auto minEdges = map<int, int>();
+			for (int i = 0; i < vertexAmount; ++i)
+				minEdges[i] = -1;
+			for (int i = 0; i < edgeVector.size(); ++i)
+			{
+				auto edge = edgeVector[i];
+				int from = edge.first.first;
+				int to = edge.first.second;
+				int weight = edge.second;
+				int fromComponent = dsu.find(from);
+				int toComponent = dsu.find(to);
+				if (fromComponent != toComponent) {
+					if (minEdges[fromComponent] == -1 || edgeVector[minEdges[fromComponent]].second > weight)
+						minEdges[fromComponent] = i;
+					if (minEdges[toComponent] == -1 || edgeVector[minEdges[toComponent]].second > weight)
+						minEdges[toComponent] = i;
 				}
 			}
-
+			for (int i = 0; i < minEdges.size(); i++) {
+				if (minEdges[i] != -1) {
+					pair<pair<int, int>, int> edge = edgeVector[minEdges[i]];
+					dsu.unite(edge.first.first, edge.first.second);
+					newEdgeListGraph->addEdge(edge.first.first, edge.first.second, edge.second);
+				}
+			}
 		}
 		return spaingTree;
-	}
+	}*/
 
 	bool checkEulerCircle() {
 		for (int i = 0; i < vertexNumber; i++) {
@@ -848,15 +843,6 @@ public:
 
 	vector <tuple<int, int, int>> getSpaingTreeKruscal() {
 		vector <tuple<int, int, int>> spaingTree;
-		/* (int i = 0; i < edgesNumber; i++) {
-			for (int j = i; j < edgesNumber; j++) {
-				if (get<2>(edgesList[j]) < get<2>(edgesList[i])) {
-					tuple<int, int, int> temp = edgesList[j];
-					edgesList[j] = edgesList[i];
-					edgesList[i] = temp;
-				}
-			}
-		}*/
 		QSort(edgesList, 0, edgesList.size() - 1);
 
 		DSU dsu;
@@ -872,6 +858,41 @@ public:
 		return spaingTree;
 	}
 
+	vector <tuple<int, int, int>> getSpaingTreeBoruvka() {
+		vector <tuple<int, int, int>> spaingTree;
+		DSU dsu;
+		for (int i = 0; i < vertexNumber; i++)
+			dsu.make_set(i + 1);
+
+		while (spaingTree.size() < vertexNumber - 1) {
+			auto minEdges = map<int, int>();
+			for (int i = 0; i < vertexNumber; ++i)
+				minEdges[i] = -1;
+			for (int i = 0; i < edgesList.size(); ++i)
+			{
+				auto edge = edgesList[i];
+				int from = get<0>(edge);
+				int to = get<1>(edge);
+				int weight = get<2>(edge);
+				int fromComponent = dsu.find_set(from);
+				int toComponent = dsu.find_set(to);
+				if (fromComponent != toComponent) {
+					if (minEdges[fromComponent] == -1 || get<2>(edgesList[minEdges[fromComponent]]) > weight)
+						minEdges[fromComponent] = i;
+					if (minEdges[toComponent] == -1 || get<2>(edgesList[minEdges[toComponent]]) > weight)
+						minEdges[toComponent] = i;
+				}
+			}
+			for (int i = 0; i < minEdges.size(); i++) {
+				if (minEdges[i] != -1) {
+					auto edge = edgesList[minEdges[i]];
+					dsu.union_sets(get<0>(edge), get<1>(edge));
+					spaingTree.push_back(tuple<int, int, int>(get<0>(edge),get<1>(edge),get<2>(edge)));
+				}
+			}
+		}
+		return spaingTree;
+	}
 };
 
 class Graph {
@@ -930,9 +951,9 @@ public:
 
 	Graph getSpaingTreePrima() {
 		this->transformToAdjList();
-		vector<set<pair<int, int>>> minimalSpanningTree = reinterpret_cast<AdjListGraph*>(representation)->getSpaingTreePrima();
+		vector<tuple<int, int, int>> minimalSpanningTree = reinterpret_cast<AdjListGraph*>(representation)->getSpaingTreePrima();
 		Graph* spanningTree = new Graph();
-		spanningTree->representation = new AdjListGraph(minimalSpanningTree, representation->GetInfo());
+		spanningTree->representation = new ListOfEdgesGraph(minimalSpanningTree, representation->GetInfo());
 		return *spanningTree;
 	}
 
@@ -945,10 +966,10 @@ public:
 	}
 
 	Graph getSpaingTreeBoruvka() {
-		this->transformToAdjList();
-		vector<set<pair<int, int>>> minimalSpaingTree = reinterpret_cast<AdjListGraph*>(representation)->getSpaingTreeBoruvka();
+		this->transformToListOfEdges();
+		vector <tuple<int, int, int>> minimalSpanningTree = reinterpret_cast<ListOfEdgesGraph*>(representation)->getSpaingTreeKruscal();
 		Graph* spaingTree = new Graph();
-		spaingTree->representation = new AdjListGraph(minimalSpaingTree, representation->GetInfo());
+		spaingTree->representation = new ListOfEdgesGraph(minimalSpanningTree, representation->GetInfo());
 		return *spaingTree;
 	}
 
@@ -1007,12 +1028,15 @@ int main()
 	system("pause");
 	return 0;*/
 	Graph g;
-	g.readGraph("input.txt");
+	g.readGraph("Test.txt");
 	//Graph gg=g.getSpaingTreeBoruvka();
-	Graph gg = g.getSpaingTreeKruscal();
-	// Graph gg=g.getSpaingTreePrima();
+	//Graph gg = g.getSpaingTreeKruscal();
+	Graph gg=g.getSpaingTreeBoruvka();
 	gg.transformToListOfEdges();
 	gg.writeGraph("output.txt");
+	Graph gg2 = g.getSpaingTreeKruscal();
+	gg2.transformToListOfEdges();
+	gg2.writeGraph("output2.txt");
 	return 0;
 }
 
